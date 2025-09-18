@@ -1,0 +1,73 @@
+{
+  "format": 1,
+  "restore": {
+    "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj": {}
+  },
+  "projects": {
+    "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj": {
+      "version": "1.0.0",
+      "restore": {
+        "projectUniqueName": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj",
+        "projectName": "SCOMMCPServer",
+        "projectPath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj",
+        "packagesPath": "C:\\Users\\jonas\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\obj\\",
+        "projectStyle": "PackageReference",
+        "skipContentFileWrite": true,
+        "configFilePaths": [
+          "C:\\Users\\jonas\\AppData\\Roaming\\NuGet\\NuGet.Config",
+          "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.Offline.config"
+        ],
+        "originalTargetFrameworks": [
+          "net472"
+        ],
+        "sources": {
+          "C:\\Program Files (x86)\\Microsoft SDKs\\NuGetPackages\\": {},
+          "https://api.nuget.org/v3/index.json": {},
+          "https://opslogix.pkgs.visualstudio.com/_packaging/Opslogix-Packages-Private/nuget/v3/index.json": {}
+        },
+        "frameworks": {
+          "net472": {
+            "projectReferences": {}
+          }
+        }
+      },
+      "frameworks": {
+        "net472": {
+          "dependencies": {
+            "Microsoft.Extensions.Configuration": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Microsoft.Extensions.Configuration.Binder": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Microsoft.Extensions.Configuration.Json": {
+              "target": "Package",
+              "version": "[7.0.0, )"
+            },
+            "Newtonsoft.Json": {
+              "target": "Package",
+              "version": "[13.0.3, )"
+            }
+          }
+        }
+      },
+      "runtimes": {
+        "win": {
+          "#import": []
+        },
+        "win-arm64": {
+          "#import": []
+        },
+        "win-x64": {
+          "#import": []
+        },
+        "win-x86": {
+          "#import": []
+        }
+      }
+    }
+  }
+}
