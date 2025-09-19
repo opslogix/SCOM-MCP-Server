@@ -1,5 +1,6 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 
 namespace SCOMMCPServer.Services
 {
@@ -8,9 +9,19 @@ namespace SCOMMCPServer.Services
         private readonly string _eventSource = "SCOM MCP Server";
         private readonly string _eventLogName = "Operations Manager";
         private bool _sourceExists = false;
+        private readonly TextWriter _console;
+
+        // Event ID Categories
+        public const int EVENT_ID_STARTUP = 1000;
+        public const int EVENT_ID_QUERY = 1001;
+        public const int EVENT_ID_UPDATE = 1002;
+        public const int EVENT_ID_MAINTENANCE = 1003;
+        public const int EVENT_ID_ERROR = 3000;
+        public const int EVENT_ID_WARNING = 2000;
 
         public EventLogService()
         {
+            _console = Console.Error;
             InitializeEventSource();
         }
 
@@ -18,33 +29,37 @@ namespace SCOMMCPServer.Services
         {
             try
             {
-                // Check if the event source exists
                 if (!EventLog.SourceExists(_eventSource))
                 {
-                    // Create event source (requires admin privileges)
                     EventLog.CreateEventSource(_eventSource, _eventLogName);
-                    Console.Error.WriteLine($"Created event source: {_eventSource}");
+                    WriteToConsole($"Created event source: {_eventSource}");
                 }
                 _sourceExists = true;
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"Unable to create event source, will use fallback logging: {ex.Message}");
+                WriteToConsole($"Unable to create event source, will use fallback logging: {ex.Message}");
                 _sourceExists = false;
             }
         }
 
-        public void LogInformation(string message, int eventId = 1000)
+        public void LogInformation(string message, int eventId = EVENT_ID_STARTUP)
         {
             WriteEntry(message, EventLogEntryType.Information, eventId);
         }
 
-        public void LogWarning(string message, int eventId = 2000)
+        public void LogQuery(string operation, int resultCount, long milliseconds)
+        {
+            string message = $"{operation} executed successfully, returned {resultCount} results in {milliseconds}ms";
+            WriteEntry(message, EventLogEntryType.Information, EVENT_ID_QUERY);
+        }
+
+        public void LogWarning(string message, int eventId = EVENT_ID_WARNING)
         {
             WriteEntry(message, EventLogEntryType.Warning, eventId);
         }
 
-        public void LogError(string message, Exception exception = null, int eventId = 3000)
+        public void LogError(string message, Exception exception = null, int eventId = EVENT_ID_ERROR)
         {
             string fullMessage = exception != null
                 ? $"{message}\nException: {exception}"
@@ -53,24 +68,32 @@ namespace SCOMMCPServer.Services
             WriteEntry(fullMessage, EventLogEntryType.Error, eventId);
         }
 
+        private void WriteToConsole(string message)
+        {
+            _console.WriteLine(message);
+            _console.Flush();
+        }
+
         private void WriteEntry(string message, EventLogEntryType entryType, int eventId)
         {
-            try
+            // Format and write to console
+            string timestamp = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff");
+            string consoleMessage = $"[{timestamp}] [{entryType}] [EventID:{eventId}] {message}";
+
+            // Direct write to stderr with immediate flush
+            WriteToConsole(consoleMessage);
+
+            // Also write to Windows Event Log if available
+            if (_sourceExists)
             {
-                if (_sourceExists)
+                try
                 {
                     EventLog.WriteEntry(_eventSource, message, entryType, eventId);
-                    Console.Error.WriteLine($"Event log entry written: {message}");
                 }
-                else
+                catch (Exception ex)
                 {
-                    // Fallback to console logging
-                    Console.Error.WriteLine($"EventLog [{entryType}] {message}");
+                    WriteToConsole($"[{timestamp}] [Warning] Failed to write to Windows Event Log: {ex.Message}");
                 }
-            }
-            catch (Exception ex)
-            {
-                Console.Error.WriteLine($"Failed to write to event log: {ex.Message}");
             }
         }
     }

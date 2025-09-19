@@ -56,17 +56,24 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Models\PerformanceDataResult.cs" />
+    <Compile Include="Models\PerformanceStatistics.cs" />
+    <Compile Include="Models\AggregationType.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Configuration\SCOMOptions.cs" />
     <Compile Include="Services\SCOMConnectionService.cs" />
     <Compile Include="Services\EventLogService.cs" />
     <Compile Include="Services\AlertStatistics.cs" />
+    <Compile Include="Tools\SCOMAgentTools.cs" />
     <Compile Include="Tools\SCOMAlertTools.cs" />
     <Compile Include="Models\AlertInfo.cs" />
     <Compile Include="Models\AlertCountBySeverity.cs" />
     <Compile Include="MCP\MCPServer.cs" />
     <Compile Include="MCP\StdioTransport.cs" />
+    <Compile Include="Tools\SCOMManagementServerTools.cs" />
+    <Compile Include="Tools\SCOMMonitoringObjectTools.cs" />
+    <None Include="Tools\SCOMPerformanceTools.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

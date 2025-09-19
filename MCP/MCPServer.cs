@@ -41,11 +41,57 @@ namespace SCOMMCPServer.MCP
             {
                 return await SCOMAlertTools.CountAlertsBySeverity(_scomService);
             };
+
+            // Register get_scom_agents tool
+            _tools["get_scom_agents"] = async (parameters) =>
+            {
+                string computerName = parameters["computerName"]?.ToString();
+                string managementServer = parameters["managementServer"]?.ToString();
+                bool includeHealthState = parameters["includeHealthState"]?.Value<bool>() ?? true;
+
+                return await SCOMAgentTools.GetSCOMAgents(
+                    _scomService, computerName, managementServer, includeHealthState);
+            };
+
+            // Register test_scom_agent tool
+            _tools["test_scom_agent"] = async (parameters) =>
+            {
+                string computerName = parameters["computerName"]?.ToString();
+
+                return await SCOMAgentTools.TestSCOMAgent(_scomService, computerName);
+            };
+            _tools["get_scom_management_servers"] = async (parameters) =>
+            {
+                string computerName = parameters["computerName"]?.ToString();
+                bool includeHealthState = parameters["includeHealthState"]?.Value<bool>() ?? true;
+
+                return await SCOMManagementServerTools.GetSCOMManagementServers(
+                    _scomService, computerName, includeHealthState);
+            };
+
+            _tools["test_scom_management_server"] = async (parameters) =>
+            {
+                string computerName = parameters["computerName"]?.ToString();
+
+                return await SCOMManagementServerTools.TestSCOMManagementServer(_scomService, computerName);
+            };
+
+            _tools["get_monitoring_objects"] = async (parameters) =>
+            {
+                string displayName = parameters["displayName"]?.ToString();
+                string className = parameters["className"]?.ToString();
+                string objectPath = parameters["objectPath"]?.ToString();
+                bool includeHealthState = parameters["includeHealthState"]?.Value<bool>() ?? true;
+                int maxResults = parameters["maxResults"]?.Value<int>() ?? 100;
+
+                return await SCOMMonitoringObjectTools.GetMonitoringObjects(
+                    _scomService, displayName, className, objectPath, includeHealthState, maxResults);
+            };
         }
 
         public async Task StartAsync()
         {
-            _eventLog.LogInformation("MCP Server starting with stdio transport");
+            _eventLog.LogInformation("MCP Server starting with stdio transport", EventLogService.EVENT_ID_STARTUP);
 
             // Don't send initialization immediately - wait for client's initialize request
 
@@ -159,7 +205,135 @@ namespace SCOMMCPServer.MCP
                         ["type"] = "object",
                         ["properties"] = new JObject()
                     }
+                },
+                new JObject
+                {
+                    ["name"] = "get_scom_agents",
+                    ["description"] = "Get SCOM agent information similar to Get-SCOMAgent cmdlet",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Optional computer name filter (partial match supported)"
+                            },
+                            ["managementServer"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Optional management server filter"
+                            },
+                            ["includeHealthState"] = new JObject
+                            {
+                                ["type"] = "boolean",
+                                ["description"] = "Include agent health state information",
+                                ["default"] = true
+                            }
+                        }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "get_monitoring_objects",
+                    ["description"] = "Get SCOM monitoring objects similar to Get-SCOMMonitoringObject cmdlet",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["displayName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Filter by display name (partial match supported)"
+                            },
+                            ["className"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Filter by class name (e.g., 'Microsoft.Windows.Computer', 'Microsoft.SQLServer.Database')"
+                            },
+                            ["objectPath"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Filter by object path (partial match supported)"
+                            },
+                            ["includeHealthState"] = new JObject
+                            {
+                                ["type"] = "boolean",
+                                ["description"] = "Include health state information",
+                                ["default"] = true
+                            },
+                            ["maxResults"] = new JObject
+                            {
+                                ["type"] = "integer",
+                                ["description"] = "Maximum number of objects to return",
+                                ["default"] = 100
+                            }
+                        }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "test_scom_agent",
+                    ["description"] = "Test SCOM agent connectivity and health",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Computer name to test (required)"
+                            }
+                        },
+                        ["required"] = new JArray { "computerName" }
+                    }
                 }
+                ,
+                new JObject
+                {
+                    ["name"] = "get_scom_management_servers",
+                    ["description"] = "Get SCOM management server information similar to Get-SCOMManagementServer cmdlet",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Optional computer name filter (partial match supported)"
+                            },
+                            ["includeHealthState"] = new JObject
+                            {
+                                ["type"] = "boolean",
+                                ["description"] = "Include management server health state information",
+                                ["default"] = true
+                            }
+                        }
+                    }
+                },
+            new JObject
+            {
+                ["name"] = "test_scom_management_server",
+                ["description"] = "Test SCOM management server connectivity and health",
+                ["inputSchema"] = new JObject
+                {
+                    ["type"] = "object",
+                    ["properties"] = new JObject
+                    {
+                        ["computerName"] = new JObject
+                        {
+                            ["type"] = "string",
+                            ["description"] = "Management server computer name to test (required)"
+                        }
+                    },
+                    ["required"] = new JArray { "computerName" }
+                }
+            }
+
             };
 
             var response = new JObject
