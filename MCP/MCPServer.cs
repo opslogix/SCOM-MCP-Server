@@ -52,6 +52,7 @@ namespace SCOMMCPServer.MCP
                 return await SCOMMaintenanceModeTools.GetMaintenanceMode(
                     _scomService, computerName);
             };
+
             // Register get_alerts tool
             _tools["get_alerts"] = async (parameters) =>
             {
@@ -85,6 +86,7 @@ namespace SCOMMCPServer.MCP
 
                 return await SCOMAgentTools.TestSCOMAgent(_scomService, computerName);
             };
+
             _tools["get_scom_management_servers"] = async (parameters) =>
             {
                 string computerName = parameters["computerName"]?.ToString();
@@ -261,6 +263,65 @@ namespace SCOMMCPServer.MCP
                 },
                 new JObject
                 {
+                    ["name"] = "test_scom_agent",
+                    ["description"] = "Test SCOM agent connectivity and health",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Computer name to test (required)"
+                            }
+                        },
+                        ["required"] = new JArray { "computerName" }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "get_scom_management_servers",
+                    ["description"] = "Get SCOM management server information similar to Get-SCOMManagementServer cmdlet",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Optional computer name filter (partial match supported)"
+                            },
+                            ["includeHealthState"] = new JObject
+                            {
+                                ["type"] = "boolean",
+                                ["description"] = "Include management server health state information",
+                                ["default"] = true
+                            }
+                        }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "test_scom_management_server",
+                    ["description"] = "Test SCOM management server connectivity and health",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Management server computer name to test (required)"
+                            }
+                        },
+                        ["required"] = new JArray { "computerName" }
+                    }
+                },
+                new JObject
+                {
                     ["name"] = "get_monitoring_objects",
                     ["description"] = "Get SCOM monitoring objects similar to Get-SCOMMonitoringObject cmdlet",
                     ["inputSchema"] = new JObject
@@ -299,38 +360,9 @@ namespace SCOMMCPServer.MCP
                     }
                 },
                 new JObject
-        {
-            ["name"] = "set_maintenance_mode",
-            ["description"] = "Set maintenance mode for a computer",
-            ["inputSchema"] = new JObject
-            {
-                ["type"] = "object",
-                ["properties"] = new JObject
                 {
-                    ["computerName"] = new JObject
-                    {
-                        ["type"] = "string",
-                        ["description"] = "Computer name to put in maintenance mode (required)"
-                    },
-                    ["duration"] = new JObject
-                    {
-                        ["type"] = "integer",
-                        ["description"] = "Duration in minutes for maintenance mode",
-                        ["default"] = 30
-                    },
-                    ["reason"] = new JObject
-                    {
-                        ["type"] = "string",
-                        ["description"] = "Reason for maintenance mode"
-                    }
-                },
-                ["required"] = new JArray { "computerName" }
-            }
-        },
-                new JObject
-                {
-                    ["name"] = "test_scom_agent",
-                    ["description"] = "Test SCOM agent connectivity and health",
+                    ["name"] = "set_maintenance_mode",
+                    ["description"] = "Set maintenance mode for a computer",
                     ["inputSchema"] = new JObject
                     {
                         ["type"] = "object",
@@ -339,55 +371,59 @@ namespace SCOMMCPServer.MCP
                             ["computerName"] = new JObject
                             {
                                 ["type"] = "string",
-                                ["description"] = "Computer name to test (required)"
+                                ["description"] = "Computer name to put in maintenance mode (required)"
+                            },
+                            ["duration"] = new JObject
+                            {
+                                ["type"] = "integer",
+                                ["description"] = "Duration in minutes for maintenance mode",
+                                ["default"] = 30
+                            },
+                            ["reason"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Reason for maintenance mode"
+                            }
+                        },
+                        ["required"] = new JArray { "computerName" }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "get_maintenance_mode",
+                    ["description"] = "Get maintenance mode status for a computer",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Computer name to check maintenance mode status (required)"
+                            }
+                        },
+                        ["required"] = new JArray { "computerName" }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "stop_maintenance_mode",
+                    ["description"] = "Stop maintenance mode for a computer",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["computerName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Computer name to stop maintenance mode (required)"
                             }
                         },
                         ["required"] = new JArray { "computerName" }
                     }
                 }
-                ,
-                new JObject
-                {
-                    ["name"] = "get_scom_management_servers",
-                    ["description"] = "Get SCOM management server information similar to Get-SCOMManagementServer cmdlet",
-                    ["inputSchema"] = new JObject
-                    {
-                        ["type"] = "object",
-                        ["properties"] = new JObject
-                        {
-                            ["computerName"] = new JObject
-                            {
-                                ["type"] = "string",
-                                ["description"] = "Optional computer name filter (partial match supported)"
-                            },
-                            ["includeHealthState"] = new JObject
-                            {
-                                ["type"] = "boolean",
-                                ["description"] = "Include management server health state information",
-                                ["default"] = true
-                            }
-                        }
-                    }
-                },
-            new JObject
-            {
-                ["name"] = "test_scom_management_server",
-                ["description"] = "Test SCOM management server connectivity and health",
-                ["inputSchema"] = new JObject
-                {
-                    ["type"] = "object",
-                    ["properties"] = new JObject
-                    {
-                        ["computerName"] = new JObject
-                        {
-                            ["type"] = "string",
-                            ["description"] = "Management server computer name to test (required)"
-                        }
-                    },
-                    ["required"] = new JArray { "computerName" }
-                }
-            }
-
             };
 
             var response = new JObject
@@ -401,6 +437,7 @@ namespace SCOMMCPServer.MCP
             };
 
             await _transport.WriteMessageAsync(response);
+            Console.Error.WriteLine($"Sent {tools.Count} tools to client");
         }
 
         private async Task CallTool(JToken id, JObject parameters)
