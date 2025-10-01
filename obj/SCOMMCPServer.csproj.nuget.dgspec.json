@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj": {}
+    "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOM-MCP-Server\\SCOMMCPServer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj": {
+    "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOM-MCP-Server\\SCOMMCPServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj",
+        "projectUniqueName": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOM-MCP-Server\\SCOMMCPServer.csproj",
         "projectName": "SCOMMCPServer",
-        "projectPath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj",
+        "projectPath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOM-MCP-Server\\SCOMMCPServer.csproj",
         "packagesPath": "C:\\Users\\jonas\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\obj\\",
+        "outputPath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOM-MCP-Server\\obj\\",
         "projectStyle": "PackageReference",
         "skipContentFileWrite": true,
         "configFilePaths": [

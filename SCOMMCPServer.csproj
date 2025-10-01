@@ -71,6 +71,7 @@
     <Compile Include="Models\AlertCountBySeverity.cs" />
     <Compile Include="MCP\MCPServer.cs" />
     <Compile Include="MCP\StdioTransport.cs" />
+    <Compile Include="Tools\SCOMMaintenanceModeTools.cs" />
     <Compile Include="Tools\SCOMManagementServerTools.cs" />
     <Compile Include="Tools\SCOMMonitoringObjectTools.cs" />
     <None Include="Tools\SCOMPerformanceTools.cs" />

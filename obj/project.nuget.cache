@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "ANJ/Y4AZvJtLe7gTXbX7MJCy9OlOq8j5PpM47YkA62QzYaOTXPP7j/DG9GOelkos+Nr7TOAWZhC1SORUlOuMIg==",
+  "dgSpecHash": "c+U06FMPKLCH3rdKGLc4a+Ck09LLOlfDK0jIioNXcpM6SWWDjinbRqMzBDSxl38qnU6aT7Ffs4Mo7j6ahZpEuQ==",
   "success": true,
-  "projectFilePath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOMMCPServer\\SCOMMCPServer.csproj",
+  "projectFilePath": "C:\\Users\\jonas\\source\\repos\\SCOMMCPServer\\SCOM-MCP-Server\\SCOMMCPServer.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\jonas\\.nuget\\packages\\microsoft.bcl.asyncinterfaces\\7.0.0\\microsoft.bcl.asyncinterfaces.7.0.0.nupkg.sha512",
     "C:\\Users\\jonas\\.nuget\\packages\\microsoft.extensions.configuration\\7.0.0\\microsoft.extensions.configuration.7.0.0.nupkg.sha512",

@@ -27,6 +27,31 @@ namespace SCOMMCPServer.MCP
 
         private void RegisterTools()
         {
+            _tools["set_maintenance_mode"] = async (parameters) =>
+            {
+                string computerName = parameters["computerName"]?.ToString();
+                int duration = parameters["duration"]?.Value<int>() ?? 30;
+                string reason = parameters["reason"]?.ToString();
+
+                return await SCOMMaintenanceModeTools.SetMaintenanceMode(
+                    _scomService, computerName, duration, reason);
+            };
+
+            _tools["stop_maintenance_mode"] = async (parameters) =>
+            {
+                string computerName = parameters["computerName"]?.ToString();
+
+                return await SCOMMaintenanceModeTools.StopMaintenanceMode(
+                    _scomService, computerName);
+            };
+
+            _tools["get_maintenance_mode"] = async (parameters) =>
+            {
+                string computerName = parameters["computerName"]?.ToString();
+
+                return await SCOMMaintenanceModeTools.GetMaintenanceMode(
+                    _scomService, computerName);
+            };
             // Register get_alerts tool
             _tools["get_alerts"] = async (parameters) =>
             {
@@ -273,6 +298,35 @@ namespace SCOMMCPServer.MCP
                         }
                     }
                 },
+                new JObject
+        {
+            ["name"] = "set_maintenance_mode",
+            ["description"] = "Set maintenance mode for a computer",
+            ["inputSchema"] = new JObject
+            {
+                ["type"] = "object",
+                ["properties"] = new JObject
+                {
+                    ["computerName"] = new JObject
+                    {
+                        ["type"] = "string",
+                        ["description"] = "Computer name to put in maintenance mode (required)"
+                    },
+                    ["duration"] = new JObject
+                    {
+                        ["type"] = "integer",
+                        ["description"] = "Duration in minutes for maintenance mode",
+                        ["default"] = 30
+                    },
+                    ["reason"] = new JObject
+                    {
+                        ["type"] = "string",
+                        ["description"] = "Reason for maintenance mode"
+                    }
+                },
+                ["required"] = new JArray { "computerName" }
+            }
+        },
                 new JObject
                 {
                     ["name"] = "test_scom_agent",
