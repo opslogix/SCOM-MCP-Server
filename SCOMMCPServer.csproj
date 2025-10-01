@@ -74,7 +74,7 @@
     <Compile Include="Tools\SCOMMaintenanceModeTools.cs" />
     <Compile Include="Tools\SCOMManagementServerTools.cs" />
     <Compile Include="Tools\SCOMMonitoringObjectTools.cs" />
-    <None Include="Tools\SCOMPerformanceTools.cs" />
+    <Compile Include="Tools\SCOMPerformanceTools.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

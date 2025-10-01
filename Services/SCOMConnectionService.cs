@@ -563,6 +563,339 @@ namespace SCOMMCPServer.Services
             }
         }
 
+        #region Performance Data Methods
+
+        /// <summary>
+        /// Get performance data for specific monitoring objects
+        /// </summary>
+        public IList<PerformanceDataResult> GetPerformanceData(
+            string objectName,
+            string counterName,
+            DateTime startTime,
+            DateTime endTime)
+        {
+            EnsureConnected();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                var performanceDataList = new List<PerformanceDataResult>();
+
+                // Get monitoring objects by name
+                var monitoringObjects = GetMonitoringObjects(displayName: objectName);
+
+                if (!monitoringObjects.Any())
+                {
+                    Console.Error.WriteLine($"No monitoring objects found with name: {objectName}");
+                    _eventLog.LogInformation($"No monitoring objects found for performance data query: {objectName}");
+                    return performanceDataList;
+                }
+
+                foreach (var monitoringObject in monitoringObjects)
+                {
+                    try
+                    {
+                        // Get performance data for the monitoring object
+                        // GetMonitoringPerformanceData returns all performance data, we'll filter by time and counter
+                        var allPerfDataItems = monitoringObject.GetMonitoringPerformanceData();
+
+                        IList<MonitoringPerformanceData> perfDataItems = allPerfDataItems;
+
+                        // Filter by counter name if specified
+                        if (!string.IsNullOrEmpty(counterName))
+                        {
+                            perfDataItems = perfDataItems
+                                .Where(pd => pd.CounterName.Equals(counterName, StringComparison.OrdinalIgnoreCase))
+                                .ToList();
+                        }
+
+                        // Extract values from each performance data item
+                        foreach (var perfData in perfDataItems)
+                        {
+                            // Get values within the time range
+                            var reader = perfData.GetValueReader(startTime, endTime);
+                            var values = new List<MonitoringPerformanceDataValue>();
+
+                            while (reader.Read())
+                            {
+                                values.Add(reader.GetMonitoringPerformanceDataValue());
+                            }
+
+                            foreach (var value in values)
+                            {
+                                // Create custom value object with additional metadata
+                                var customValue = new PerformanceDataResult
+                                {
+                                    ObjectName = perfData.ObjectName,
+                                    CounterName = perfData.CounterName,
+                                    InstanceName = perfData.InstanceName,
+                                    SampleValue = value.SampleValue ?? 0.0, // Handle nullable double
+                                    TimeSampled = value.TimeSampled,
+                                    TimeAdded = value.TimeAdded,
+                                    RuleDisplayName = perfData.RuleDisplayName,
+                                    MonitoringObjectPath = perfData.MonitoringObjectPath,
+                                    MonitoringObjectId = perfData.MonitoringObjectId
+                                };
+
+                                performanceDataList.Add(customValue);
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"Error getting performance data for object {monitoringObject.DisplayName}: {ex.Message}");
+                        _eventLog.LogWarning($"Failed to get performance data for object {monitoringObject.DisplayName}: {ex.Message}");
+                        // Continue processing other objects
+                    }
+                }
+
+                stopwatch.Stop();
+
+                Console.Error.WriteLine($"Retrieved {performanceDataList.Count} performance data values in {stopwatch.ElapsedMilliseconds}ms");
+                _eventLog.LogQuery($"Performance data query (Object={objectName}, Counter={counterName})",
+                                  performanceDataList.Count, stopwatch.ElapsedMilliseconds);
+
+                return performanceDataList;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                Console.Error.WriteLine($"Failed to retrieve performance data after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}");
+                _eventLog.LogError($"Performance data retrieval failed after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Get performance data by monitoring class
+        /// </summary>
+        public IList<PerformanceDataResult> GetPerformanceDataByClass(
+            string className,
+            string counterName,
+            DateTime startTime,
+            DateTime endTime)
+        {
+            EnsureConnected();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                var performanceDataList = new List<PerformanceDataResult>();
+
+                // Get all monitoring classes matching the pattern
+                var matchingClasses = _managementGroup.EntityTypes.GetClasses()
+                    .Where(c => c.Name.IndexOf(className, StringComparison.OrdinalIgnoreCase) >= 0 ||
+                               (c.DisplayName != null && c.DisplayName.IndexOf(className, StringComparison.OrdinalIgnoreCase) >= 0))
+                    .ToList();
+
+                if (!matchingClasses.Any())
+                {
+                    Console.Error.WriteLine($"No monitoring classes found matching: {className}");
+                    _eventLog.LogInformation($"No monitoring classes found for performance data query: {className}");
+                    return performanceDataList;
+                }
+
+                foreach (var monitoringClass in matchingClasses)
+                {
+                    try
+                    {
+                        // Get all instances of this class
+                        var instances = _managementGroup.EntityObjects.GetObjectReader<PartialMonitoringObject>(
+                            monitoringClass, ObjectQueryOptions.Default);
+
+                        foreach (var instance in instances)
+                        {
+                            try
+                            {
+                                // Get performance data for this instance
+                                var allPerfDataItems = instance.GetMonitoringPerformanceData();
+
+                                IList<MonitoringPerformanceData> perfDataItems = allPerfDataItems;
+
+                                // Filter by counter name if specified
+                                if (!string.IsNullOrEmpty(counterName))
+                                {
+                                    perfDataItems = perfDataItems
+                                        .Where(pd => pd.CounterName.Equals(counterName, StringComparison.OrdinalIgnoreCase))
+                                        .ToList();
+                                }
+
+                                // Extract values
+                                foreach (var perfData in perfDataItems)
+                                {
+                                    // Get values within the time range using reader
+                                    var reader = perfData.GetValueReader(startTime, endTime);
+                                    var values = new List<MonitoringPerformanceDataValue>();
+
+                                    while (reader.Read())
+                                    {
+                                        values.Add(reader.GetMonitoringPerformanceDataValue());
+                                    }
+
+                                    foreach (var value in values)
+                                    {
+                                        var customValue = new PerformanceDataResult
+                                        {
+                                            ObjectName = perfData.ObjectName,
+                                            CounterName = perfData.CounterName,
+                                            InstanceName = perfData.InstanceName,
+                                            SampleValue = value.SampleValue ?? 0.0, // Handle nullable double
+                                            TimeSampled = value.TimeSampled,
+                                            TimeAdded = value.TimeAdded,
+                                            RuleDisplayName = perfData.RuleDisplayName,
+                                            MonitoringObjectPath = perfData.MonitoringObjectPath,
+                                            MonitoringObjectId = perfData.MonitoringObjectId
+                                        };
+
+                                        performanceDataList.Add(customValue);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Console.Error.WriteLine($"Error getting performance data for instance {instance.DisplayName}: {ex.Message}");
+                                // Continue processing other instances
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"Error processing class {monitoringClass.DisplayName}: {ex.Message}");
+                        _eventLog.LogWarning($"Failed to process class {monitoringClass.DisplayName} for performance data: {ex.Message}");
+                        // Continue processing other classes
+                    }
+                }
+
+                stopwatch.Stop();
+
+                Console.Error.WriteLine($"Retrieved {performanceDataList.Count} performance data values by class in {stopwatch.ElapsedMilliseconds}ms");
+                _eventLog.LogQuery($"Performance data by class query (Class={className}, Counter={counterName})",
+                                  performanceDataList.Count, stopwatch.ElapsedMilliseconds);
+
+                return performanceDataList;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                Console.Error.WriteLine($"Failed to retrieve performance data by class after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}");
+                _eventLog.LogError($"Performance data by class retrieval failed after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}", ex);
+                throw;
+            }
+        }
+
+        /// <summary>
+        /// Get aggregated performance statistics
+        /// </summary>
+        public PerformanceStatistics GetPerformanceStatistics(
+            string objectName,
+            string counterName,
+            DateTime startTime,
+            DateTime endTime,
+            AggregationType aggregationType)
+        {
+            EnsureConnected();
+            var stopwatch = Stopwatch.StartNew();
+
+            try
+            {
+                // Get the raw performance data
+                var performanceData = GetPerformanceData(objectName, counterName, startTime, endTime);
+
+                if (!performanceData.Any())
+                {
+                    return new PerformanceStatistics
+                    {
+                        ObjectName = objectName,
+                        CounterName = counterName,
+                        StartTime = startTime,
+                        EndTime = endTime,
+                        SampleCount = 0,
+                        AggregationType = aggregationType,
+                        Value = 0,
+                        Average = 0,
+                        Min = 0,
+                        Max = 0,
+                        StandardDeviation = 0
+                    };
+                }
+
+                // Group by counter if multiple counters
+                var groupedData = performanceData
+                    .GroupBy(pd => new { pd.ObjectName, pd.CounterName, pd.InstanceName })
+                    .FirstOrDefault();
+
+                if (groupedData == null)
+                {
+                    throw new InvalidOperationException("No performance data found for the specified parameters");
+                }
+
+                var values = groupedData.Select(pd => pd.SampleValue).ToList();
+
+                // Calculate statistics
+                var stats = new PerformanceStatistics
+                {
+                    ObjectName = groupedData.Key.ObjectName,
+                    CounterName = groupedData.Key.CounterName,
+                    InstanceName = groupedData.Key.InstanceName,
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    SampleCount = values.Count,
+                    AggregationType = aggregationType,
+                    Average = values.Average(),
+                    Min = values.Min(),
+                    Max = values.Max()
+                };
+
+                // Calculate aggregated value based on type
+                switch (aggregationType)
+                {
+                    case AggregationType.Average:
+                        stats.Value = stats.Average;
+                        break;
+                    case AggregationType.Min:
+                        stats.Value = stats.Min;
+                        break;
+                    case AggregationType.Max:
+                        stats.Value = stats.Max;
+                        break;
+                    case AggregationType.Sum:
+                        stats.Value = values.Sum();
+                        break;
+                    case AggregationType.Count:
+                        stats.Value = stats.SampleCount;
+                        break;
+                    default:
+                        stats.Value = stats.Average;
+                        break;
+                }
+
+                // Calculate standard deviation
+                if (values.Count > 1)
+                {
+                    double mean = stats.Average;
+                    double sumOfSquares = values.Sum(v => Math.Pow(v - mean, 2));
+                    stats.StandardDeviation = Math.Sqrt(sumOfSquares / (values.Count - 1));
+                }
+
+                stopwatch.Stop();
+
+                Console.Error.WriteLine($"Calculated performance statistics in {stopwatch.ElapsedMilliseconds}ms");
+                _eventLog.LogQuery($"Performance statistics query (Object={objectName}, Counter={counterName}, Type={aggregationType})",
+                                  stats.SampleCount, stopwatch.ElapsedMilliseconds);
+
+                return stats;
+            }
+            catch (Exception ex)
+            {
+                stopwatch.Stop();
+                Console.Error.WriteLine($"Failed to calculate performance statistics after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}");
+                _eventLog.LogError($"Performance statistics calculation failed after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}", ex);
+                throw;
+            }
+        }
+
+        #endregion
+
         private void EnsureConnected()
         {
             if (_managementGroup == null || !_managementGroup.IsConnected)

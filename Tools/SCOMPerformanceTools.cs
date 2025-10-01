@@ -35,7 +35,7 @@ namespace SCOMMCPServer.Tools
 
                 var results = performanceData
                     .Take(maxResults)
-                    .Select(pd => new PerformanceDataResult
+                    .Select(pd => new
                     {
                         ObjectName = pd.ObjectName,
                         CounterName = pd.CounterName,
@@ -44,7 +44,8 @@ namespace SCOMMCPServer.Tools
                         TimeSampled = pd.TimeSampled,
                         TimeAdded = pd.TimeAdded,
                         RuleDisplayName = pd.RuleDisplayName,
-                        MonitoringObjectPath = pd.MonitoringObjectPath
+                        MonitoringObjectPath = pd.MonitoringObjectPath,
+                        MonitoringObjectId = pd.MonitoringObjectId
                     })
                     .ToList();
 
@@ -101,7 +102,7 @@ namespace SCOMMCPServer.Tools
                         AverageValue = g.Average(pd => pd.SampleValue),
                         MinValue = g.Min(pd => pd.SampleValue),
                         MaxValue = g.Max(pd => pd.SampleValue),
-                        LastValue = g.OrderByDescending(pd => pd.TimeSampled).First().SampleValue,
+                        LastValue = g.OrderByDescending(pd => pd.TimeSampled).FirstOrDefault()?.SampleValue ?? 0,
                         Samples = g.Select(pd => new
                         {
                             Value = pd.SampleValue,
@@ -214,7 +215,7 @@ namespace SCOMMCPServer.Tools
                         AverageValue = g.Average(pd => pd.SampleValue),
                         MaxValue = g.Max(pd => pd.SampleValue),
                         MinValue = g.Min(pd => pd.SampleValue),
-                        LastValue = g.OrderByDescending(pd => pd.TimeSampled).First().SampleValue,
+                        LastValue = g.OrderByDescending(pd => pd.TimeSampled).FirstOrDefault()?.SampleValue ?? 0,
                         SampleCount = g.Count()
                     })
                     .OrderByDescending(x => x.AverageValue)

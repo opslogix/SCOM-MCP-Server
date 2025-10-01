@@ -31,6 +31,10 @@ C:\Users\jonas\source\repos\SCOMMCPServer\SCOMMCPServer\bin\Debug\Microsoft.Ente
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOMMCPServer\obj\Debug\SCOMMCPServer.csproj.CopyComplete
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOMMCPServer\obj\Debug\SCOMMCPServer.exe
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOMMCPServer\obj\Debug\SCOMMCPServer.pdb
+C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.csproj.AssemblyReference.cache
+C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.csproj.SuggestedBindingRedirects.cache
+C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.exe.config
+C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.csproj.CoreCompileInputs.cache
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\bin\Debug\appsettings.json
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\bin\Debug\SCOMMCPServer.exe.config
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\bin\Debug\SCOMMCPServer.exe
@@ -57,10 +61,6 @@ C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\bin\Debug\System.Value
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\bin\Debug\Microsoft.EnterpriseManagement.Core.dll
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\bin\Debug\Microsoft.EnterpriseManagement.OperationsManager.dll
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\bin\Debug\Microsoft.EnterpriseManagement.Runtime.dll
-C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.csproj.AssemblyReference.cache
-C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.csproj.SuggestedBindingRedirects.cache
-C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.exe.config
-C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.csproj.CoreCompileInputs.cache
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.csproj.CopyComplete
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.exe
 C:\Users\jonas\source\repos\SCOMMCPServer\SCOM-MCP-Server\obj\Debug\SCOMMCPServer.pdb

@@ -114,6 +114,55 @@ namespace SCOMMCPServer.MCP
                 return await SCOMMonitoringObjectTools.GetMonitoringObjects(
                     _scomService, displayName, className, objectPath, includeHealthState, maxResults);
             };
+
+            // Register performance data tools
+            _tools["get_performance_data"] = async (parameters) =>
+            {
+                string objectName = parameters["objectName"]?.ToString();
+                string counterName = parameters["counterName"]?.ToString();
+                DateTime? startTime = parameters["startTime"]?.Value<DateTime>();
+                DateTime? endTime = parameters["endTime"]?.Value<DateTime>();
+                int maxResults = parameters["maxResults"]?.Value<int>() ?? 1000;
+
+                return await SCOMPerformanceTools.GetPerformanceData(
+                    _scomService, objectName, counterName, startTime, endTime, maxResults);
+            };
+
+            _tools["get_performance_data_by_class"] = async (parameters) =>
+            {
+                string className = parameters["className"]?.ToString();
+                string counterName = parameters["counterName"]?.ToString();
+                DateTime? startTime = parameters["startTime"]?.Value<DateTime>();
+                DateTime? endTime = parameters["endTime"]?.Value<DateTime>();
+                int maxResults = parameters["maxResults"]?.Value<int>() ?? 1000;
+
+                return await SCOMPerformanceTools.GetPerformanceDataByClass(
+                    _scomService, className, counterName, startTime, endTime, maxResults);
+            };
+
+            _tools["get_performance_statistics"] = async (parameters) =>
+            {
+                string objectName = parameters["objectName"]?.ToString();
+                string counterName = parameters["counterName"]?.ToString();
+                DateTime? startTime = parameters["startTime"]?.Value<DateTime>();
+                DateTime? endTime = parameters["endTime"]?.Value<DateTime>();
+                string aggregationType = parameters["aggregationType"]?.ToString() ?? "Average";
+
+                return await SCOMPerformanceTools.GetPerformanceStatistics(
+                    _scomService, objectName, counterName, startTime, endTime, aggregationType);
+            };
+
+            _tools["get_top_performance_counters"] = async (parameters) =>
+            {
+                string className = parameters["className"]?.ToString();
+                string counterName = parameters["counterName"]?.ToString();
+                int topN = parameters["topN"]?.Value<int>() ?? 10;
+                DateTime? startTime = parameters["startTime"]?.Value<DateTime>();
+                DateTime? endTime = parameters["endTime"]?.Value<DateTime>();
+
+                return await SCOMPerformanceTools.GetTopPerformanceCounters(
+                    _scomService, className, counterName, topN, startTime, endTime);
+            };
         }
 
         public async Task StartAsync()
@@ -422,6 +471,178 @@ namespace SCOMMCPServer.MCP
                             }
                         },
                         ["required"] = new JArray { "computerName" }
+                    }
+                },
+                // Performance data tools
+                new JObject
+                {
+                    ["name"] = "get_performance_data",
+                    ["description"] = "Retrieve performance data for specific monitoring objects",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["objectName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Name of the monitoring object (e.g., server name)",
+                                ["required"] = true
+                            },
+                            ["counterName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Optional performance counter name (e.g., '% Processor Time')"
+                            },
+                            ["startTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "Start time for data retrieval (default: 24 hours ago)"
+                            },
+                            ["endTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "End time for data retrieval (default: now)"
+                            },
+                            ["maxResults"] = new JObject
+                            {
+                                ["type"] = "integer",
+                                ["description"] = "Maximum number of results to return",
+                                ["default"] = 1000
+                            }
+                        },
+                        ["required"] = new JArray { "objectName" }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "get_performance_data_by_class",
+                    ["description"] = "Retrieve performance data for all objects of a specific monitoring class",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["className"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Name of the monitoring class (e.g., 'Microsoft.Windows.Server.OperatingSystem')",
+                                ["required"] = true
+                            },
+                            ["counterName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Optional performance counter name to filter"
+                            },
+                            ["startTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "Start time for data retrieval (default: 24 hours ago)"
+                            },
+                            ["endTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "End time for data retrieval (default: now)"
+                            },
+                            ["maxResults"] = new JObject
+                            {
+                                ["type"] = "integer",
+                                ["description"] = "Maximum number of results to return",
+                                ["default"] = 1000
+                            }
+                        },
+                        ["required"] = new JArray { "className" }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "get_performance_statistics",
+                    ["description"] = "Get aggregated performance statistics for a specific object and counter",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["objectName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Name of the monitoring object",
+                                ["required"] = true
+                            },
+                            ["counterName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Performance counter name",
+                                ["required"] = true
+                            },
+                            ["startTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "Start time for statistics calculation (default: 24 hours ago)"
+                            },
+                            ["endTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "End time for statistics calculation (default: now)"
+                            },
+                            ["aggregationType"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["enum"] = new JArray { "Average", "Min", "Max", "Sum", "Count" },
+                                ["description"] = "Type of aggregation to perform",
+                                ["default"] = "Average"
+                            }
+                        },
+                        ["required"] = new JArray { "objectName", "counterName" }
+                    }
+                },
+                new JObject
+                {
+                    ["name"] = "get_top_performance_counters",
+                    ["description"] = "Get top N objects by performance counter value for a specific class",
+                    ["inputSchema"] = new JObject
+                    {
+                        ["type"] = "object",
+                        ["properties"] = new JObject
+                        {
+                            ["className"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Name of the monitoring class",
+                                ["required"] = true
+                            },
+                            ["counterName"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["description"] = "Performance counter name to rank by",
+                                ["required"] = true
+                            },
+                            ["topN"] = new JObject
+                            {
+                                ["type"] = "integer",
+                                ["description"] = "Number of top results to return",
+                                ["default"] = 10
+                            },
+                            ["startTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "Start time for data analysis (default: 24 hours ago)"
+                            },
+                            ["endTime"] = new JObject
+                            {
+                                ["type"] = "string",
+                                ["format"] = "date-time",
+                                ["description"] = "End time for data analysis (default: now)"
+                            }
+                        },
+                        ["required"] = new JArray { "className", "counterName" }
                     }
                 }
             };
