@@ -566,7 +566,7 @@ namespace SCOMMCPServer.Services
         #region Performance Data Methods
 
         /// <summary>
-        /// Get performance data for specific monitoring objects
+        /// Get performance data for specific monitoring objects (GENERIC VERSION)
         /// </summary>
         public IList<PerformanceDataResult> GetPerformanceData(
             string objectName,
@@ -580,78 +580,97 @@ namespace SCOMMCPServer.Services
             try
             {
                 var performanceDataList = new List<PerformanceDataResult>();
+                var processedObjects = new HashSet<Guid>(); // Track processed objects to avoid duplicates
 
-                // Get monitoring objects by name
-                var monitoringObjects = GetMonitoringObjects(displayName: objectName);
+                // First, try to find objects matching the name using the broader GetMonitoringObjects method
+                var partialObjects = GetMonitoringObjects(displayName: objectName);
+                var matchingObjects = new List<MonitoringObject>();
 
-                if (!monitoringObjects.Any())
-                {
-                    Console.Error.WriteLine($"No monitoring objects found with name: {objectName}");
-                    _eventLog.LogInformation($"No monitoring objects found for performance data query: {objectName}");
-                    return performanceDataList;
-                }
-
-                foreach (var monitoringObject in monitoringObjects)
+                // Convert PartialMonitoringObject to full MonitoringObject
+                foreach (var partial in partialObjects)
                 {
                     try
                     {
-                        // Get performance data for the monitoring object
-                        // GetMonitoringPerformanceData returns all performance data, we'll filter by time and counter
-                        var allPerfDataItems = monitoringObject.GetMonitoringPerformanceData();
-
-                        IList<MonitoringPerformanceData> perfDataItems = allPerfDataItems;
-
-                        // Filter by counter name if specified
-                        if (!string.IsNullOrEmpty(counterName))
-                        {
-                            perfDataItems = perfDataItems
-                                .Where(pd => pd.CounterName.Equals(counterName, StringComparison.OrdinalIgnoreCase))
-                                .ToList();
-                        }
-
-                        // Extract values from each performance data item
-                        foreach (var perfData in perfDataItems)
-                        {
-                            // Get values within the time range
-                            var reader = perfData.GetValueReader(startTime, endTime);
-                            var values = new List<MonitoringPerformanceDataValue>();
-
-                            while (reader.Read())
-                            {
-                                values.Add(reader.GetMonitoringPerformanceDataValue());
-                            }
-
-                            foreach (var value in values)
-                            {
-                                // Create custom value object with additional metadata
-                                var customValue = new PerformanceDataResult
-                                {
-                                    ObjectName = perfData.ObjectName,
-                                    CounterName = perfData.CounterName,
-                                    InstanceName = perfData.InstanceName,
-                                    SampleValue = value.SampleValue ?? 0.0, // Handle nullable double
-                                    TimeSampled = value.TimeSampled,
-                                    TimeAdded = value.TimeAdded,
-                                    RuleDisplayName = perfData.RuleDisplayName,
-                                    MonitoringObjectPath = perfData.MonitoringObjectPath,
-                                    MonitoringObjectId = perfData.MonitoringObjectId
-                                };
-
-                                performanceDataList.Add(customValue);
-                            }
-                        }
+                        var fullObject = _managementGroup.EntityObjects.GetObject<MonitoringObject>(
+                            partial.Id, ObjectQueryOptions.Default);
+                        matchingObjects.Add(fullObject);
                     }
                     catch (Exception ex)
                     {
-                        Console.Error.WriteLine($"Error getting performance data for object {monitoringObject.DisplayName}: {ex.Message}");
-                        _eventLog.LogWarning($"Failed to get performance data for object {monitoringObject.DisplayName}: {ex.Message}");
-                        // Continue processing other objects
+                        Console.Error.WriteLine($"Could not convert partial object {partial.DisplayName}: {ex.Message}");
                     }
+                }
+
+                Console.Error.WriteLine($"Found {matchingObjects.Count} objects matching '{objectName}'");
+
+                // If no objects found with the broader search, try looking for specific class types
+                if (!matchingObjects.Any())
+                {
+                    Console.Error.WriteLine("No objects found with display name search, trying class-based search...");
+
+                    // Try to find by searching through all classes
+                    var allClasses = _managementGroup.EntityTypes.GetClasses();
+
+                    foreach (var monitoringClass in allClasses)
+                    {
+                        try
+                        {
+                            // Skip abstract classes
+                            if (monitoringClass.Abstract)
+                                continue;
+
+                            // Create criteria for this specific class
+                            var classCriteria = new MonitoringObjectCriteria(
+                                $"DisplayName LIKE '%{objectName}%' OR Name LIKE '%{objectName}%' OR Path LIKE '%{objectName}%'",
+                                monitoringClass);
+
+                            var classObjects = _managementGroup.EntityObjects.GetObjectReader<MonitoringObject>(
+                                classCriteria, ObjectQueryOptions.Default).ToList();
+
+                            if (classObjects.Any())
+                            {
+                                Console.Error.WriteLine($"Found {classObjects.Count} objects in class {monitoringClass.Name}");
+                                matchingObjects.AddRange(classObjects);
+                            }
+                        }
+                        catch
+                        {
+                            // Some classes might not support the criteria, continue
+                        }
+                    }
+                }
+
+                // Process each matching object and its related objects
+                foreach (var monitoringObject in matchingObjects)
+                {
+                    Console.Error.WriteLine($"Processing object: {monitoringObject.FullName} (Class: {monitoringObject.GetLeastDerivedNonAbstractClass()?.DisplayName})");
+
+                    // Recursively collect performance data from this object and all related objects
+                    CollectPerformanceDataRecursively(
+                        monitoringObject,
+                        counterName,
+                        startTime,
+                        endTime,
+                        performanceDataList,
+                        processedObjects,
+                        0, // depth
+                        3); // maxDepth - limit recursion depth
                 }
 
                 stopwatch.Stop();
 
-                Console.Error.WriteLine($"Retrieved {performanceDataList.Count} performance data values in {stopwatch.ElapsedMilliseconds}ms");
+                // Log summary of what was found
+                var counterSummary = performanceDataList
+                    .GroupBy(p => p.CounterName)
+                    .Select(g => $"{g.Key} ({g.Count()} samples)")
+                    .ToList();
+
+                Console.Error.WriteLine($"Retrieved {performanceDataList.Count} total performance data values in {stopwatch.ElapsedMilliseconds}ms");
+                if (counterSummary.Any())
+                {
+                    Console.Error.WriteLine($"Counters found: {string.Join(", ", counterSummary)}");
+                }
+
                 _eventLog.LogQuery($"Performance data query (Object={objectName}, Counter={counterName})",
                                   performanceDataList.Count, stopwatch.ElapsedMilliseconds);
 
@@ -663,6 +682,162 @@ namespace SCOMMCPServer.Services
                 Console.Error.WriteLine($"Failed to retrieve performance data after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}");
                 _eventLog.LogError($"Performance data retrieval failed after {stopwatch.ElapsedMilliseconds}ms: {ex.Message}", ex);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Recursively collect performance data from an object and its related objects
+        /// </summary>
+        private void CollectPerformanceDataRecursively(
+            MonitoringObject monitoringObject,
+            string counterName,
+            DateTime startTime,
+            DateTime endTime,
+            List<PerformanceDataResult> performanceDataList,
+            HashSet<Guid> processedObjects,
+            int currentDepth,
+            int maxDepth)
+        {
+            // Avoid infinite recursion and processing the same object twice
+            if (currentDepth > maxDepth || processedObjects.Contains(monitoringObject.Id))
+            {
+                return;
+            }
+
+            processedObjects.Add(monitoringObject.Id);
+
+            string indent = new string(' ', currentDepth * 2);
+            Console.Error.WriteLine($"{indent}Checking object: {monitoringObject.DisplayName ?? monitoringObject.Name} [Depth: {currentDepth}]");
+
+            // 1. Try to get performance data directly from this object
+            try
+            {
+                var allPerfDataItems = monitoringObject.GetMonitoringPerformanceData();
+
+                if (allPerfDataItems.Any())
+                {
+                    Console.Error.WriteLine($"{indent}  Found {allPerfDataItems.Count} counter types on this object");
+
+                    // Log the counter names for debugging
+                    var counterNames = allPerfDataItems.Select(p => p.CounterName).Distinct().Take(10).ToList();
+                    Console.Error.WriteLine($"{indent}  Sample counters: {string.Join(", ", counterNames)}{(allPerfDataItems.Count > 10 ? "..." : "")}");
+                }
+
+                IList<MonitoringPerformanceData> perfDataItems = allPerfDataItems;
+
+                // Filter by counter name if specified
+                if (!string.IsNullOrEmpty(counterName))
+                {
+                    perfDataItems = perfDataItems
+                        .Where(pd => pd.CounterName.IndexOf(counterName, StringComparison.OrdinalIgnoreCase) >= 0)
+                        .ToList();
+                }
+
+                // Extract values from each performance data item
+                foreach (var perfData in perfDataItems)
+                {
+                    try
+                    {
+                        var reader = perfData.GetValueReader(startTime, endTime);
+                        int valueCount = 0;
+
+                        while (reader.Read())
+                        {
+                            var value = reader.GetMonitoringPerformanceDataValue();
+                            valueCount++;
+
+                            var customValue = new PerformanceDataResult
+                            {
+                                ObjectName = perfData.ObjectName,
+                                CounterName = perfData.CounterName,
+                                InstanceName = perfData.InstanceName,
+                                SampleValue = value.SampleValue ?? 0.0,
+                                TimeSampled = value.TimeSampled,
+                                TimeAdded = value.TimeAdded,
+                                RuleDisplayName = perfData.RuleDisplayName,
+                                MonitoringObjectPath = perfData.MonitoringObjectPath,
+                                MonitoringObjectId = perfData.MonitoringObjectId
+                            };
+
+                            performanceDataList.Add(customValue);
+                        }
+
+                        if (valueCount > 0)
+                        {
+                            Console.Error.WriteLine($"{indent}    Retrieved {valueCount} values for counter '{perfData.CounterName}'");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"{indent}    Error reading values for counter {perfData.CounterName}: {ex.Message}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"{indent}  Error getting performance data: {ex.Message}");
+            }
+
+            // 2. Recursively check ALL related objects (both hosted and non-hosted relationships)
+            if (currentDepth < maxDepth)
+            {
+                try
+                {
+                    // Get all related objects using both traversal depths
+                    var relatedObjects = new List<MonitoringObject>();
+
+                    // Get immediately related objects
+                    try
+                    {
+                        var oneLevel = monitoringObject.GetRelatedMonitoringObjects(TraversalDepth.OneLevel);
+                        relatedObjects.AddRange(oneLevel);
+                        Console.Error.WriteLine($"{indent}  Found {oneLevel.Count} directly related objects");
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"{indent}  Could not get related objects: {ex.Message}");
+                    }
+
+                    // Also try getting objects that host this object (parent relationship)
+                    try
+                    {
+                        var parentObjects = monitoringObject.GetParentMonitoringObjects();
+                        foreach (var parent in parentObjects)
+                        {
+                            if (!processedObjects.Contains(parent.Id))
+                            {
+                                relatedObjects.Add(parent);
+                            }
+                        }
+
+                        if (parentObjects.Any())
+                        {
+                            Console.Error.WriteLine($"{indent}  Found {parentObjects.Count} parent objects");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.Error.WriteLine($"{indent}  Could not get parent objects: {ex.Message}");
+                    }
+
+                    // Process each related object recursively
+                    foreach (var related in relatedObjects)
+                    {
+                        CollectPerformanceDataRecursively(
+                            related,
+                            counterName,
+                            startTime,
+                            endTime,
+                            performanceDataList,
+                            processedObjects,
+                            currentDepth + 1,
+                            maxDepth);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"{indent}  Error processing related objects: {ex.Message}");
+                }
             }
         }
 
